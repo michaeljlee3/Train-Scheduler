@@ -28,11 +28,15 @@
             background-color: #337ab7;
             width: 100%;
         }
+        #current-time {
+            text-align: center;
+        }
     </style>
 
     <body>
         <div class="jumbotron">
             <h1>Train Scheduler</h1>
+            <h3 id="current-time"></h3>
         </div>
 
         <div class="main-container">
@@ -76,11 +80,8 @@
             </div>
         </div>
     </body>
-    
-    
 
     <script>
-        // Initialize Firebase
         var config = {
             apiKey: "AIzaSyCHzPI43qfiQ9e9dSwtGK5nK67Sj6j1bso",
             authDomain: "train-scheduler-16aef.firebaseapp.com",
@@ -92,6 +93,9 @@
 
         firebase.initializeApp(config);
         var database = firebase.database();
+        var currentTime = moment();
+
+        $("#current-time").text(currentTime);
     
        
        $("#submit-btn").on('click', function(){
@@ -100,9 +104,7 @@
             var destinationName = $("#destination-input").val().trim();
             var frequency = $("#frequency-input").val().trim();
             var firstTrain = $("#first-time-input").val().trim();
-            //var nextArrival = 
-            //var minutesAway =
-
+            
             var newTrain =  {
                 trainName: trainName,
                 destinationName: destinationName,
@@ -116,7 +118,6 @@
             $("#destination-input").val("");
             $("#frequency-input").val("");
             $("#first-time-input").val("");
-
         });
         
         database.ref().on("child_added", function(childSnapshot){
@@ -125,20 +126,22 @@
             var destinationName = childSnapshot.val().destinationName;
             var firstTrain = childSnapshot.val().firstTrain;
             var frequency = childSnapshot.val().frequency;
-            
-            $("#train-table").append(
-                "<tr class='new-train-row'><td id='nameDisplay'>" + childSnapshot.val().trainName +
-                "</td><td id='destDisplay'>" + childSnapshot.val().destinationName +
-                "</td><td id='freqDisplay'>" + childSnapshot.val().frequency + "</td></tr>");
-                //"</td><td id='nextDisplay'>" + moment(nextTrain).format("HH:mm") +
-                //"</td><td id='awayDisplay'>" + minsAway  + ' minutes until arrival' + 
+            var firstTimeConverted = moment(firstTrain, "HH:mm").subtract(1, "years");
+            var currentTime = moment();
+            var diffTime = moment().diff(moment(firstTimeConverted), "minutes");
+            var tRemainder = diffTime % frequency;
+            var tMinutesTillTrain = frequency - tRemainder;
+            var nextTrain = moment().add(tMinutesTillTrain, "minutes");
+
+            $("#train-table").append( "<tr class='new-train-row'><td id='nameDisplay'>" + childSnapshot.val().trainName + "</td><td id='destDisplay'>" + childSnapshot.val().destinationName + "</td><td id='freqDisplay'>" + childSnapshot.val().frequency + "</td><td id='nextDisplay'>" + moment(nextTrain).format("HH:mm") + "</td><td id='awayDisplay'>" + tMinutesTillTrain  + ' minutes' + "</td></tr>"
+            );
 
         });
+
         $("#clear-btn").on('click', function(){
             database.ref().remove();
             $(".new-train-row").html("");
         });
 
     </script>
-
 </html>
